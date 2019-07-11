@@ -3,8 +3,42 @@ const MyError = require('../MyError')
 const logFileName = "./logFile.json";
 
 
-var data = {};
-var fileLocked = false;
+let data = {};
+
+const blocks = () => {
+    
+    let block_count = 0
+    const MAX_BLOCK = 64
+    const check = () => block_count < MAX_BLOCK
+    const sum = () = block_count + 1
+    const set = value => block_count = value
+    const add = () => {
+	if (check())
+	    return set(sum())
+	else
+	    return false
+    }
+    const reset = () => block_count = 0
+
+    return {
+	add,
+	reset
+    }
+}
+
+const lock = ( (  ) => {
+    let fileLocked = false;
+    const on = (  ) => fileLocked = true
+    const off = (  ) => fileLocked = false
+    const get = (  ) => fileLocked
+    const push = (  ) => fileLocked = !( get (  ) )
+    return {
+	on,
+	off,
+	get,
+	push
+    }
+})()
 
 const checkFiles = ( pathFile = '' ) => {
 
@@ -21,6 +55,7 @@ const checkFiles = ( pathFile = '' ) => {
 		    obj: err
 		}))
 	    }
+	    
 	    fileName = pathFile.split('/')[1]
 	    files.forEach ( item => {
 		if (item == fileName) {
@@ -38,7 +73,7 @@ const loadLog = (  ) => {
 	promised = checkFiles()
 	promised.then( res => {
 	    if (res){
-		fs.readFile(logFileName, (err, data) => {
+		fs.readFile(logFileName, (err, dataNow) => {
 		    if ( err ) {
 			MyError.handler({
 			    name: "LogERRORLoad",
@@ -46,8 +81,8 @@ const loadLog = (  ) => {
 			    obj: err
 			})
 		    }
-		    
-		    data = JSON.parse(data);
+
+		    data = JSON.parse(dataNow);
 		    resp ( true )
 		})
 	    } else {
@@ -57,7 +92,7 @@ const loadLog = (  ) => {
 		resp ( false )
 	    }})
 	promised.catch( err => {
-	    errp ( MyError({
+	    errp ( MyError.handler({
 		name:"LoadFileLogERROR",
 		message:"Load the file error",
 		obj: err}))
@@ -65,22 +100,117 @@ const loadLog = (  ) => {
     }))
 }
 
-const saveLog = (  ) => {
-	if(!fileLocked){
-		fileLocked = true;
-		var json = JSON.stringify(data);
-		fs.writeFile(logFileName, json, 'utf8', err => {
-			if (err) throw err;
-			fileLocked = false;
-		})
+const checkSpace = () => {
+    const sizeof = ( object ) => {
+
+	var objectList = [];
+	var stack = [ object ];
+	var bytes = 0;
+
+	while ( stack.length ) {
+            var value = stack.pop();
+
+            if ( typeof value === 'boolean' ) {
+		bytes += 4;
+            }
+            else if ( typeof value === 'string' ) {
+		bytes += value.length * 2;
+            }
+            else if ( typeof value === 'number' ) {
+		bytes += 8;
+            }
+            else if
+		(
+		    typeof value === 'object'
+			&& objectList.indexOf( value ) === -1
+		)
+            {
+		objectList.push( value );
+
+		for( var i in value ) {
+                    stack.push( value[ i ] );
+		}
+            }
 	}
+	return bytes;
+    }
+    console.log(sizeof(data))
+}
+
+const saveLog = (  ) => {
+
+    if(!(lock.get())){
+
+	const json = JSON.stringify(data)
+
+	return (new Promise ((resp, errp) => {
+
+	    lock.push()
+
+	    fs.writeFile(logFileName, json, 'utf8', err => {
+		if (err) errp ( MyError.handler({
+		    name: "SaveLogERROR",
+		    message: "Erro in save Data",
+		    obj: err
+		}))
+
+		resp(!(lock.push()))
+	    })
+	}))
+    }
+}
+
+const exchangeBlockHistory = (dataNew) => {
+
+    
+}
+
+const upDateLog = (dataJson) => {
+    
+    if (!(data.logs)){
+	data['logs'] = []
+    }
+    if (dataJson instanceof Object){
+
+	if (blocks.add())
+	    data.logs.push(dataJson)
+	} else {
+	    exchangeBlockHistory (dataJson)
+	    blocks.reset()
+	}
+    } else {
+	throw MyError({
+	    name: "upDateLogERROR",
+	    message: "error of insert data into cache log",
+	    obj: dataJSON
+	})
+    }
 }
 
 const registerLogMsg = (msg) => {
-    var uid = msg.chat.id;
-    var usr = {enabled: true, data: {from: msg.from, chat: msg.chat}};
-    users[uid] = usr;
-    saveUsers();
+
+    let SwapData = {
+	date: Date(),
+	enabled: true,
+	data: {
+	    from: msg.us,
+	    about: msg.about,
+	    meta: msg.meta,
+	    obj: msg.obj
+	}
+    }
+    
+    return (new Promise( (resp, errp) => {
+	
+	upDateLog(SwapData)
+	promised = saveLog()
+	promised.then( res => {
+	    resp ( res )
+	})
+	promised.catch( err => {
+	    errp ( err )
+	})
+    }))
 }
 
 const getMsg = (uid) => {
