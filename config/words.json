@@ -1,0 +1,5 @@
+{
+    "startup": {
+        "begin": ["hello", "wellcome","good","yeah"]
+    }
+}

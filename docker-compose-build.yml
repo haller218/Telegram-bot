@@ -1,0 +1,15 @@
+version: '2'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: nodemon /home/app/index.js
+    environment:
+      NODE_ENV: development
+      BOT_TOKEN: YOUR-TOKEN
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/home/app
+      - ./node_modules:/home/app/node_modules
