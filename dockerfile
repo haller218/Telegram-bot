@@ -36,9 +36,9 @@ RUN chown -R app:app $HOME/*
 
 # ENV : Configure user env
 
-#ADD docker/ext.sh /
-#RUN chmod +x /ext.sh
-#RUN /bin/sh -c "/ext.sh"
+# ADD docker/ext.sh /
+# RUN chmod +x /ext.sh
+# RUN /bin/sh -c "/ext.sh"
 
 
 USER app
