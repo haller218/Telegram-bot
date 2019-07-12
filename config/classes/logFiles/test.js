@@ -10,131 +10,151 @@ const tests = ( type ) => {
 
     switch (type){
     case 1: // Test READWRITE
-	
-/*	// Deprecated Method of Test
-	promised = logFile.loadLog()
-	promised.then( res => {
-	    if ((res == true) || (res == false))
-		console.log("Sucessful test")
-	    else
-		console.log("Error Something")
-	})
-	promised.catch( err => {
-	    throw err
-	})
-*/
-	const preparTest = () => {
-	    fs = require('fs')
-	    const fileNames = './logFile.json'
-	    result = fs.existsSync(fileNames)
-	    if (result) {
-		fs.unlinkSync(fileNames)
+
+	return (new Promise ((rest, errt) => {
+
+	    const preparTest = async() => {
+		fs = require('fs')
+		const fileNames = './logFile.json'
+		result = fs.existsSync(fileNames)
+		if (result) {
+		    fs.unlinkSync(fileNames)
+		}
 	    }
-	}
-	
-	const processREAD = async () => {
-	    return (new Promise( (resps, errps) => {
-		prom = logFile.loadLog()
-		prom.then ( res => {    
-		    if ((res == true) || (res == false)) {
-			lis = []
-			if (res == true) // true if the file exists
-			    lis.push("T1")
-			else {
-			    if (res == false) // false if the false not exists
-				lis.push("T2") // and create then
+	    
+	    const processREAD = async () => {
+		return (new Promise( (resps, errps) => {
+		    prom = logFile.loadLog()
+		    prom.then ( res => {    
+			if ((res == true) || (res == false)) {
+			    lis = []
+			    if (res == true) // true if the file exists
+				lis.push("T1")
+			    else {
+				if (res == false) // false if the false not exists
+				    lis.push("T2") // and create then
+			    }
+			    
+			    resps({msg: "Sucessful test!", list: lis})
+			} else {
+			    errps(MyError.handler(new MyError({
+				name: "ERRORT1",
+				message: "Error Test LOAD",
+				obj: new Error()
+			    })))
 			}
-			
-			resps({msg: "Sucessful test!", list: lis})
-		    } else {
-			errps(MyError.handler({
-			    name: "ERRORT1",
-			    message: "Error Test LOAD",
-			    obj: new Error()
-			}))
-		    }
-		})
-		prom.catch( err => {
-		    MyError({
-			name: "Error Process",
-			message: "Error in test Process",
-			obj: new Error()
 		    })
-		})
-	    }))
-	}
-
-	const TD = (async () => {
-	
-	    preparTest ()
-	    try{
-		console.log("TEST READWRITE LOG")
-
-		console.log("Frist: LOAD-1")
-
-		res  = await processREAD()
-		res2 = await processREAD()
-		res.check = res.list[0] == 'T2'
-		res2.check = res2.list[0] == 'T1'
-		console.log("RES1: ",res)
-		console.log("RES2: ",res2)
-		
-	    } catch (e){
-		throw e
-	    } finally {
-		console.log("OK")
+		    prom.catch( err => {
+			errps ( MyError.handler(new MyError({
+			    name: "Error Process",
+			    message: "Error in test Process",
+			    obj: err
+			})))
+		    })
+		}))
 	    }
-	})()
+
+	    const TD = (async () => {
+		
+		try{
+		    console.log("TEST READWRITE LOG")
+		    await preparTest ()
+		    
+		    console.log("Frist: LOAD-1")
+
+		    res  = await processREAD()
+		    res2 = await processREAD()
+		    res.check = res.list[0] == 'T2'
+		    res2.check = res2.list[0] == 'T1'
+		    console.log("RES1: ",res)
+		    console.log("RES2: ",res2)
+		    rest()
+		} catch (e){
+		    errt(e)
+		} finally {
+		    console.log("OK")
+		}
+	    })()}))
 	break;
 
     case 2: // test SAVEDATA
-	console.log("TEST SAVEDATA LOG")
-	console.log("Frist: SAVE-D1")
+	return (new Promise((rest, errt) =>{
+	    console.log("TEST SAVEDATA LOG")
+	    console.log("Frist: SAVE-D1")
 
-/*	// too verbose method of insert log
-	const processSave = (async() => { 
-	    promsed = logFile.registerLogMsg({
-		us: "Test",
-		about: "Testing Save File",
-		message: "test write json into file",
-		obj: {}
-	    })
 
-	    promsed.then( res => {
-		
-		resum = {
-		    msg: "Sucessful test!",
-		    status: res
+	    const testLogMsg1 = (async(flag_one = true)=>{ // short method
+		res = await logFile.registerLogMsg({
+		    us: "Test",
+		    about: "Testing Save File",
+		    meta: "test write json into file",
+		    obj: {}
+		})
+		flag = res === true
+		ob = {msg:'Sucessful test!',
+		      'result':res, 'check':flag}
+		if (flag_one){
+		    console.log (ob)
 		}
+		return res
+	    })
 
-		if (res === true)
-		    resum['check'] = 'ok'
-		else
-		    resum['check'] = new MyError({
-			name: "ErroSaveLog",
-			msg: "Erro in regist LogMsg",
-			obj: {status: 'deprecated'}
-		    })
+	    const testLotOfData = (async()=>{
+		fi = true
+		counts = 0
+		for (i = 0; i < 15950; i++) {
+		    fi = fi && await testLogMsg1(false)
+		    if (! fi )
+			counts = counts + 1
+		}
+		console.log({msg:'Sucessful test!', 'insert': i, 
+			     'result':(String(((i-(counts/i))/i)*100)+'%'), 'check':fi})
 		
-		console.log(resum)
 	    })
-	    promsed.catch( err => {
-		throw err
-	    })
-	})
 
-	processSave()*/
+	    const main = (async() => {
+		testLogMsg1()
+		testLotOfData()
+		rest()
+	    })()
+	}))
+    case 3:
+	return (new Promise ((respt, errpt) => {
 
-	const testLogMsg = (async()=>{ // short method
-	    res = await logFile.registerLogMsg({
-		us: "Test",
-		about: "Testing Save File",
-		meta: "test write json into file",
-		obj: {}
-	    })
-	    console.log({'result':res})
-	})()
-	
+	    const runTest = async (tit = '',conter = 0, flag_one = false) => {
+
+		res = await logFile.registerLogMsg({
+		    us: "Test: "+tit,
+		    about: "Testing Save File ",
+		    meta: "test write json into file",
+		    obj: {num: conter, bool: true}
+		})
+
+		if (conter > 0)
+		    runTest ( tit, conter - 1 , flag_one)
+		
+		if (flag_one){
+		    flag = res === true
+		    ob = {msg:'Sucessful test!', type: tit,
+			  'result':res, 'check':flag, cont: conter }
+		    console.log (ob)
+		}
+		
+		return res
+	    }
+
+	    const TD = (() => {
+		
+		flag = false
+
+		for (i = 0; i < 150; i++){
+		    
+		    runTest ('T1', i, flag)
+		    runTest ('T2', i/2, flag)
+		}
+	    })()
+	    
+	}))
 	
 	break;
     default:
@@ -146,8 +166,20 @@ const main = (  ) => {
 
     console.log ("Hello, World!")
     console.log (logFile)
-    //tests( 1 ) // test READWRITE
-    tests( 2 ) // test SAVEDATA
+//    tests( 1 ).then( res => { // test READWRITE
+//	tests( 2 ).then( res => {  // test READFILE
+//	    tests( 3 ).then( res => { // test ASYNCWRITE
+//	    })
+//	})
+//    })
+
+    uo = tests( 3 )
+    uo.then ( res => console.log(res))
+    uo.catch ( err => MyError.handler(new MyError({
+	name: "TestError",
+	message: "Error in test async write",
+	obj: err
+    })))
 }
 
 
