@@ -99,7 +99,7 @@ const checkFiles = ( pathFile = '' ) => {
 
     return (new Promise ((resp, errp) => {
 
-	spl = logFileName.split('/')
+	let spl = logFileName.split('/')
 
 	if ( pathFile == '' ) {
 
@@ -207,7 +207,16 @@ const changeLogFile = () => {
 
     return (new Promise ((res, err) => {
 
-	checkFiles
+	let flag = true
+	interFileName = logFileName + blocks.ver (  )
+	while (flag) {
+	    
+	    fs.exists(interFileName, resul => flag = resul)
+	    if (flag) {
+		blocks.setv ( blocks.ver (  ) + 1 )
+		interFileName = logFileName + blocks.ver (  )
+	    }
+	}
     }))
 }
 
@@ -215,15 +224,16 @@ const checkSpace = () => {
 
     return (new Promise((restp, errtp) => {
 	try {
-	    if (blocks.en (  )) {
-		so = sizeof(data)
+	    if (!(blocks.en (  ))) {
+
+		let so = sizeof(data)
 
 		so = so / 1024 / 1024
 
 		if (so >= MAX_FILE_SIZE) {
 
 		    promo = changeLogFile (  )
-		    promo.then ( res => restp ( res ) )
+		    promo.then ( res => restp ( !res ) )
 		    promo.catch ( err => errtp ( MyError.handler(new MyError({
 			name:"changeERRORLogFile",
 			message: "Erro in rename logFile archive",
@@ -231,7 +241,7 @@ const checkSpace = () => {
 		    }))))
 		    
 		} else {
-		    return false
+		    restp ( true )
 		}
 	    }
 	} catch (e) {
@@ -378,6 +388,7 @@ const registerLogMsg = (msg) => {
 			msg: "Error in update log",
 			obj: err
 		    })))
+
 		})
 	    } catch (e) {
 		errp ( MyError.handler(new MyError({
@@ -396,13 +407,21 @@ const registerLogMsg = (msg) => {
     }))
 }
 
-const getMsg = (uid) => {
-    return users[uid];
+const getLog = (uid) => {
+    return data.logs[uid];
 }
 
 const getLogList = () => {
-    return Object.keys(users);
+    return data.logs;
 }
+
+const getHistory = (uid) => {
+    return data.history[uid]
+}
+
+    const getHistoryList = () => {
+	return data.history
+    }
 
 const setMetaData = (uid, key, val) => {
     users[uid].data[key] = val;
@@ -413,59 +432,6 @@ const getMetaData = (uid, key) => {
     return users[uid].data[key];
 }
 
-const assertCounter = (uid, id) => {
-    if(users[uid]) {
-        if(users[uid].counter) {
-            if(users[uid].counter[id]) {
-                if("value" in users[uid].counter[id]) {
-                    return true;
-                }
-                else {
-                    users[uid].counter[id].value = 0;
-                }
-            }
-            else {
-                users[uid].counter[id] = {};
-                users[uid].counter[id].value = 0;
-                saveUsers();
-            }
-        }
-        else {
-            users[uid].counter = {};
-            if(users[uid].count && id == '0') {//old counter detected, migrate count
-                users[uid].counter[id] = {value: users[uid].count};
-                delete users[uid].count;
-            }
-            else {
-                users[uid].counter[id] = {};
-                users[uid].counter[id].value = 0;
-            }
-            saveUsers();
-        }
-    }
-    else {
-        //console.log("[ERROR] User ID", uid, "does not exist in database");
-        var usr = {enabled: true, data: {from: undefined, chat: undefined, error: "user was not initialized properly"}, counter: {"0": {"value": 1}}};
-        users[uid] = usr;
-        saveUsers();
-    }
-}
-
-const setCounter = (uid, id, val) => {
-    assertCounter(uid, id);
-    users[uid].counter[id].value = val;
-    saveUsers();
-}
-
-const getCounter = (uid, id) => {
-    assertCounter(uid, id);
-    return users[uid].counter[id].value;
-}
-
-const getAllCounters = (uid) => {
-    assertCounter(uid, '0');
-    return users[uid].counter;
-}
 
 module.exports = {
     loadLog,
