@@ -102,7 +102,7 @@ const tests = ( type ) => {
 	    const testLotOfData = (async()=>{
 		fi = true
 		counts = 0
-		for (i = 0; i < 15950; i++) {
+		for (i = 0; i < 300; i++) {
 		    fi = fi && await testLogMsg1(false)
 		    if (! fi )
 			counts = counts + 1
@@ -114,7 +114,7 @@ const tests = ( type ) => {
 
 	    const main = (async() => {
 		testLogMsg1()
-		testLotOfData()
+		//testLotOfData()
 		rest()
 	    })()
 	}))
@@ -147,12 +147,42 @@ const tests = ( type ) => {
 		
 		flag = false
 
-		for (i = 0; i < 150; i++){
+		for (i = 0; i < 6; i++){
 		    
 		    runTest ('T1', i, flag)
 		    runTest ('T2', i/2, flag)
 		}
 	    })()
+	    
+	}))
+	
+	break;
+    case 4:
+	return (new Promisse((res, err) => { // TODO: TEST LOG CGHANGE FILE
+
+	    const testLogMsg1 = (async(flag_one = true)=>{ // short method
+		res = await logFile.registerLogMsg({
+		    us: "Test",
+		    about: "Testing Save File",
+		    meta: "test write json into file",
+		    obj: {}
+		})
+		flag = res === true
+		ob = {msg:'Sucessful test!',
+		      'result':res, 'check':flag}
+		if (flag_one){
+		    console.log (ob)
+		}
+		return res
+	    })
+
+	    const main = (() => {
+
+
+		
+
+	    })()
+
 	    
 	}))
 	
@@ -165,21 +195,29 @@ const tests = ( type ) => {
 const main = (  ) => {
 
     console.log ("Hello, World!")
-    console.log (logFile)
-//    tests( 1 ).then( res => { // test READWRITE
-//	tests( 2 ).then( res => {  // test READFILE
-//	    tests( 3 ).then( res => { // test ASYNCWRITE
-//	    })
-//	})
-//    })
+     console.log (logFile)
+     /*tests( 1 ).then( res => { // test READWRITE
+	 tests( 2 ).then( res => {  // test READFILE
+	    tests( 3 ).then( res => { // test ASYNCWRITE
+	    })
+	})
+	})*/
+    wat = tests( 2 )
+    wat.then (res => console.log( "finsh",res))
+    wat.catch ( e => MyError.handler(new MyError({
+	name: "TestError",
+	message: "Error in test async write",
+	obj: err
+    })))
 
-    uo = tests( 3 )
+/*    uo = tests( 3 )
     uo.then ( res => console.log(res))
     uo.catch ( err => MyError.handler(new MyError({
 	name: "TestError",
 	message: "Error in test async write",
 	obj: err
-    })))
+	})))*/
+    
 }
 
 

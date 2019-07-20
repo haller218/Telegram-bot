@@ -3,7 +3,13 @@ const MyError = require('../MyError')
 const logFileName = "./tm/logFile.json";
 const MAX_FILE_SIZE = 5.2 // in mb
 
+let LOADED_FILE = false
+
 let data = {};
+
+// TODO IN FUTURE
+// CREATE CHACK CENTRAL DATA TO SAVE IN BLOCK JSON
+// USE ONE SETTIMEOUT TO SERVICE CHECKS THE LIST OF OBJECTS TO BE WRITED
 
 const blocks = (() => {
     
@@ -17,8 +23,8 @@ const blocks = (() => {
     const setcell = value => cell_count = value
     const add = (  ) => {
 
-	set ( sum (  ) )
-	return check (  )
+	setcell( sumcell (  ) )
+	return checkcell (  )
     }
     const reset = (  ) => setcell ( 0 )
 
@@ -49,13 +55,13 @@ const blocks = (() => {
 
 const seeDirectory = ( pathD ) => {
 
-    return (new Promisse ((resp, errp) => {
+    return (new Promise ((resp, errp) => {
 	try {
 	    fs.readdir ( pathD ,(err, files) => {
 		if ( err ) {
 		    errp ( MyError.handler(new MyError({
 			name: "SeeERRORDirectory",
-			message: "suck directory error"
+			message: "suck directory error",
 			obj: err
 		    })))
 		}
@@ -63,35 +69,28 @@ const seeDirectory = ( pathD ) => {
 	    })
 	} catch (e) {
 	    errp ( MyError.handler(new MyError({
-		name: "seeErrorTHENDirectory",
-		message: "Erro in THEN body seeDirectory",
+		name: "seeERRORRead",
+		message: "Error in read Directory File",
 		obj: e
 	    })))
 	}
-
     }))
 }
 
 const searchFiles = ( path = '.' ) => {
 
     return (new Promise((resp, errp) => {
-	try {
-	    promo = seeDirector ( path )
-	    promo.then ( res => {
-		resp ( res )
-	    })
-	    peomo.catch ( err => errp ( MyError.handler(new MyError({
-		name: "CheckFilesERROR",
-		message: "Error in search file path",
-		obj: err
-	    }))))
-	} catch (e) {
-	    errp ( MyError.handler(new MyError({
-		name: "searchErrorTHENFiles",
-		message: "Erro in THEN body searchFile",
-		obj: e
-	    })))
-	} 
+
+	promo = seeDirectory ( path )
+	promo.then ( res => {
+	    resp ( res )
+	})
+	promo.catch ( err => errp ( MyError.handler(new MyError({
+	    name: "CheckFilesERROR",
+	    message: "Error in search file path",
+	    obj: err
+	}))))
+
     }))
 }
 
@@ -135,6 +134,9 @@ const loadLog = (  ) => {
 	promised = checkFiles()
 	promised.then( res => {
 	    try {
+
+		LOADED_FILE = true
+
 		if (res){
 		    fs.readFile(logFileName, (err, dataNow) => {
 			if ( err ) {
@@ -150,8 +152,13 @@ const loadLog = (  ) => {
 		    })
 		} else {
 		    fs.createWriteStream(logFileName)
-		    saveLog (  )
-		    resp ( false )
+		    sol = saveLog (  )
+		    sol.then ( res => resp ( false ) )
+		    sol.catch (err => errp ( MyError.handler(new MyError({
+			name: "LoadSaveERRORFileLog",
+			message: "Error in save log of obj JSON in File",
+			obj: err
+		    }))))
 		}
 	    } catch (e) {
 		errp ( MyError.handler(new MyError({
@@ -164,13 +171,13 @@ const loadLog = (  ) => {
 	promised.catch( err => {
 	    errp ( MyError.handler(new MyError({
 		name:"LoadFileLogERROR",
-		message:"Load the file error",
+		message:"Ckeck the file, error",
 		obj: err})))
 	})
     }))
 }
 
-const sizeof = ( object ) => {
+const sizeofMB = ( object ) => {
     var objectList = [];
     var stack = [ object ];
     var bytes = 0;
@@ -200,56 +207,100 @@ const sizeof = ( object ) => {
 	    }
         }
     }
-    return bytes;
+
+    return bytes / 1024 / 1024;
 }
+
+const checkVersionFileName = (  ) => {
+
+    return (new Promise((restp, errtp)=> {
+
+	interFileName = ''
+
+	let flag = true
+
+	const vers = (  ) => interFileName = logFileName + '.' + blocks.ver (  )
+
+	vers (  )
+
+	while (flag) {
+	    try {
+		fs.exists(interFileName, resul => flag = resul)
+		if (flag) {
+		    blocks.setv ( blocks.ver (  ) + 1 )
+		    vers (  )
+		}
+	    } catch (e) {
+		errtp (MyError.handler( new MyError ({
+		    name: "CheckERRORVersion",
+		    message: "Erro verify file",
+		    obj: e
+		})))
+	    }
+	}
+	
+	restp ( interFileName )
+    }))
+}
+
 
 const changeLogFile = () => {
 
-    return (new Promise ((res, err) => {
+    return (new Promise ((resp, errp) => {
 
-	let flag = true
-	interFileName = logFileName + blocks.ver (  )
-	while (flag) {
-	    
-	    fs.exists(interFileName, resul => flag = resul)
-	    if (flag) {
-		blocks.setv ( blocks.ver (  ) + 1 )
-		interFileName = logFileName + blocks.ver (  )
+	prom = checkVersionFileName (  )
+	prom.then ( resName => {
+	    try {
+
+		fs.rename(logFileName, resName,
+			  err => errp (MyError.handler( new MyError ({
+			      name: "RenameERRORFile",
+			      message: "Erro in rename file",
+			      obj: err
+			  }))))
+
+		resp ( true )
+	    } catch (e) {
+		errp (MyError.handler( new MyError ({
+		    name: "SaveERRORLog",
+		    message: "Erro write file",
+		    obj: e
+		})))
 	    }
-	}
+	})
+	prom.catch ( e => {
+	    errp (MyError.handler( new MyError ({
+		name: "ChangeERRORLogFile",
+		message: "Erro verify file",
+		obj: e
+	    })))
+	})
     }))
 }
 
 const checkSpace = () => {
 
     return (new Promise((restp, errtp) => {
-	try {
-	    if (!(blocks.en (  ))) {
 
-		let so = sizeof(data)
+	if (!(blocks.en (  ))) {
 
-		so = so / 1024 / 1024
+	    let so = sizeofMB(data)
 
-		if (so >= MAX_FILE_SIZE) {
+	    if (so >= MAX_FILE_SIZE) {
 
-		    promo = changeLogFile (  )
-		    promo.then ( res => restp ( !res ) )
-		    promo.catch ( err => errtp ( MyError.handler(new MyError({
-			name:"changeERRORLogFile",
-			message: "Erro in rename logFile archive",
-			obj: dataNew
-		    }))))
-		    
-		} else {
-		    restp ( true )
-		}
+		promo = changeLogFile (  )
+		promo.then ( res => restp ( !res ) )
+		promo.catch ( err => errtp ( MyError.handler(new MyError({
+		    name:"changeERRORLogFile",
+		    message: "Erro in call change file",
+		    obj: {data: dataNew, error: err}
+		}))))
+		
+	    } else {
+
+		restp ( true )
 	    }
-	} catch (e) {
-	    errtp (MyError.handler( new MyError ({
-		name: "CheckERRORTHENSpace",
-		message: "Erro THEN Check Space File",
-		obj: e
-	    })))
+	}
     }))
 }
 
@@ -268,22 +319,18 @@ const saveLog = (  ) => {
 		    obj: err
 		})))
 
-		bi = true
-		
 		promo = checkSpace (  )
-		promo.then ( res => bi = bi && res )
+		promo.then ( res => resp ( res ) )
 		promo.catch ( err => errp ( MyError.handler(new MyError({
 		    name:"checkERROSpace",
 		    message: "Erro in check space of file",
-		    obj: dataNew
+		    obj: {data: dataNew, error: err}
 		}))))
-
-		resp ( bi )
 	    })
 	} catch (e) {
 	    errp (MyError.handler( new MyError ({
-		name: "SaveERRORTHENLog",
-		message: "Erro THEN write file",
+		name: "SaveERRORLog",
+		message: "Erro write file",
 		obj: e
 	    })))
 	}
@@ -293,25 +340,18 @@ const saveLog = (  ) => {
 const ExchangeBlockHistory = (dataNew) => {
 
     return (new Promise ((resp, errp) => {
-	try {
-	    data.history.push(data.logs)
-	    data.logs = []
-	    data.logs.push(dataNew)
-	    
-	    prom = saveLog()
-	    prom.then ( res => resp ( res ) )
-	    prom.catch ( err => errp ( MyError.handler(new MyError({
-		name:"ExchangeERROHistory",
-		message: "Error in save log into history list",
-		obj: dataNew
-	    }))))
-	} catch (e) {
-	    errp (MyError.handler(new MyError ({
-		name: "ExchangeTHENBlockERROR",
-		msg:"Error in put new data into history",
-		obj: e
-	    })))		
-	}
+
+	data.history.push(data.logs)
+	data.logs = []
+	data.logs.push(dataNew)
+	
+	prom = saveLog()
+	prom.then ( res => resp ( res ) )
+	prom.catch ( err => errp ( MyError.handler(new MyError({
+	    name:"ExchangeERROHistory",
+	    message: "Error in save log into history list",
+	    obj: dataNew
+	}))))
     }))
 }
 
@@ -328,34 +368,27 @@ const setObjectGlobal = () => {
 const upDateLog = (dataJson) => {
     
     return (new Promise((respt, errpt) => {
-	try {
-	    if (dataJson instanceof Object){
 
-		setObjectGlobal (  )
+	if (dataJson instanceof Object){
 
-		if (blocks.add()){
+	    setObjectGlobal (  )
 
-		    result = data.logs.push(dataJson)
-		    
-		    respt ( result > 0 )
-		} else {
-		    blocks.reset()
-		    promised = ExchangeBlockHistory ( dataJson )
-		    promised.then ( res => respt ( res ) )
-		    promised.catch ( err => errpt ( err ) )
-		}
+	    if (blocks.add()){
+
+		result = data.logs.push(dataJson)
+		
+		respt ( result > 0 )
 	    } else {
-		errpt ( MyError.handler(new MyError({
-		    name: "upDateLogERROR",
-		    message: "error of insert data into cache log",
-		    obj: dataJson
-		})))
+		blocks.reset()
+		promised = ExchangeBlockHistory ( dataJson )
+		promised.then ( res => respt ( res ) )
+		promised.catch ( err => errpt ( err ) )
 	    }
-	} catch (e) {
+	} else {
 	    errpt ( MyError.handler(new MyError({
-		name: "UpDateTHENLogERROR",
-		message: "Error in updatelog data",
-		obj: e
+		name: "upDateLogERROR",
+		message: "error of insert data into cache log",
+		obj: dataJson
 	    })))
 	}
     }))
@@ -365,38 +398,32 @@ const registerLogMsg = (msg) => {
     return (new Promise( (resp, errp) => {
 
 	if (msg instanceof Object) {
-	    try {
-		let SwapData = {
-		    date: Date(),
-		    enabled: true,
-		    data: {
-			from: msg.us,
-			about: msg.about,
-			meta: msg.meta,
-			obj: msg.obj
-		    }
-		}
-		
-		up = upDateLog(SwapData)
-		up.then ( res => {
-		    resp ( res )
-		})
-		up.catch ( err => {
-		    
-		    errp ( MyError.handler(new MyError({
-			name: "ErrorRegisterLog",
-			msg: "Error in update log",
-			obj: err
-		    })))
 
-		})
-	    } catch (e) {
-		errp ( MyError.handler(new MyError({
-		    name: "RegisterTHENERRRORMsg",
-		    msg: "Error in data handler to register msg",
-		    obj: msg
-		})))
+	    if (!LOADED_FILE) {
+
+		loadLog (  )
 	    }
+
+	    let SwapData = {
+		date: Date(),
+		enabled: true,
+		data: {
+		    from: msg.us,
+		    about: msg.about,
+		    meta: msg.meta,
+		    obj: msg.obj
+		}
+	    }
+	    
+	    up = upDateLog(SwapData)
+	    up.then ( res => {
+		resp ( res )
+	    })
+	    up.catch ( err => errp ( MyError.handler(new MyError({
+		    name: "ErrorRegisterLog",
+		    msg: "Error in update log",
+		    obj: err
+	    }))))
 	} else {
 	    errp ( MyError.handler(new MyError({
 		name: "RegisterERRRORMsg",
@@ -419,27 +446,15 @@ const getHistory = (uid) => {
     return data.history[uid]
 }
 
-    const getHistoryList = () => {
-	return data.history
-    }
-
-const setMetaData = (uid, key, val) => {
-    users[uid].data[key] = val;
-    saveUsers();
-}
-
-const getMetaData = (uid, key) => {
-    return users[uid].data[key];
+const getHistoryList = () => {
+    return data.history
 }
 
 
 module.exports = {
-    loadLog,
     registerLogMsg,
     getLogList,
-    setMetaData,
-    getMetaData,
-    setCounter,
-    getCounter,
-    getAllCounters
+    getLog,
+    getHistory,
+    getHistoryList
 };
