@@ -212,16 +212,45 @@ const changeLogFile = () => {
 }
 
 const checkSpace = () => {
-    return sizeof(data)
+
+    return (new Promise((restp, errtp) => {
+	try {
+	    if (blocks.en (  )) {
+		so = sizeof(data)
+
+		so = so / 1024 / 1024
+
+		if (so >= MAX_FILE_SIZE) {
+
+		    promo = changeLogFile (  )
+		    promo.then ( res => restp ( res ) )
+		    promo.catch ( err => errtp ( MyError.handler(new MyError({
+			name:"changeERRORLogFile",
+			message: "Erro in rename logFile archive",
+			obj: dataNew
+		    }))))
+		    
+		} else {
+		    return false
+		}
+	    }
+	} catch (e) {
+	    errtp (MyError.handler( new MyError ({
+		name: "CheckERRORTHENSpace",
+		message: "Erro THEN Check Space File",
+		obj: e
+	    })))
+    }))
 }
 
 
 const saveLog = (  ) => {
 
-    let json = JSON.stringify(data)
-
     return (new Promise ((resp, errp) => {
 	try {
+
+	    let json = JSON.stringify(data)
+	    
 	    fs.writeFile(logFileName, json, 'utf8', err => {
 		if (err) errp ( MyError.handler(new MyError({
 		    name: "SaveLogERROR",
@@ -229,12 +258,22 @@ const saveLog = (  ) => {
 		    obj: err
 		})))
 
-		resp(true)
+		bi = true
+		
+		promo = checkSpace (  )
+		promo.then ( res => bi = bi && res )
+		promo.catch ( err => errp ( MyError.handler(new MyError({
+		    name:"checkERROSpace",
+		    message: "Erro in check space of file",
+		    obj: dataNew
+		}))))
+
+		resp ( bi )
 	    })
 	} catch (e) {
 	    errp (MyError.handler( new MyError ({
-		name: "ErrorSaveLog",
-		message: "Erro write file",
+		name: "SaveERRORTHENLog",
+		message: "Erro THEN write file",
 		obj: e
 	    })))
 	}
