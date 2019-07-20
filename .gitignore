@@ -4,3 +4,4 @@ node_modules
 !/\.gitignore
 yarn.lock
 dat.json
+docker-compose.yml
