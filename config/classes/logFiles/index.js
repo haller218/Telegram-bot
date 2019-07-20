@@ -1,6 +1,7 @@
 const fs = require('fs');
 const MyError = require('../MyError')
-const logFileName = "./logFile.json";
+const logFileName = "./tm/logFile.json";
+const MAX_FILE_SIZE = 5.2 // in mb
 
 let data = {};
 
@@ -9,16 +10,17 @@ const blocks = (() => {
     let cell_count = 0
     const MAX_BLOCK = 64
     let version = 0
-    const get = (  ) => cell_count
-    const check = (  ) => (get() < MAX_BLOCK)
-    const sum = (  ) => get(  ) + 1
-    const set = value => cell_count = value
+    let blew = 0
+    const getcell = (  ) => cell_count
+    const checkcell = (  ) => (getcell() < MAX_BLOCK)
+    const sumcell = (  ) => getcell(  ) + 1
+    const setcell = value => cell_count = value
     const add = (  ) => {
 
 	set ( sum (  ) )
 	return check (  )
     }
-    const reset = (  ) => set ( 0 )
+    const reset = (  ) => setcell ( 0 )
 
     const ver = (  ) => version
     const setv = value => version = value
@@ -27,28 +29,69 @@ const blocks = (() => {
 	setv ( ver(  ) + 1 )
     }
     const brek = ups => set ( ups )
+    const en = (  ) => {
+	blew + 1
+	return che (  )
+    }
+    const che = (  ) => blew < MAX_BLOCK
+    const now = (  ) => blew = 0
     return {
 	add,
 	reset,
 	ver,
 	news,
-	brek
+	brek,
+	en,
+	che,
+	now
     }
 })()
+
+const seeDirectory = ( pathD ) => {
+
+    return (new Promisse ((resp, errp) => {
+	try {
+	    fs.readdir ( pathD ,(err, files) => {
+		if ( err ) {
+		    errp ( MyError.handler(new MyError({
+			name: "SeeERRORDirectory",
+			message: "suck directory error"
+			obj: err
+		    })))
+		}
+		resp ( files )
+	    })
+	} catch (e) {
+	    errp ( MyError.handler(new MyError({
+		name: "seeErrorTHENDirectory",
+		message: "Erro in THEN body seeDirectory",
+		obj: e
+	    })))
+	}
+
+    }))
+}
 
 const searchFiles = ( path = '.' ) => {
 
     return (new Promise((resp, errp) => {
-	fs.readdir ( path ,(err, files) => {
-	    if ( err ) {
-		errp ( MyError.handler(new MyError({
-		    name: "File ERROR",
-		    message: "No files in directory logFile",
-		    obj: err
-		})))
-	    }
-	    resp ( files )
-	})
+	try {
+	    promo = seeDirector ( path )
+	    promo.then ( res => {
+		resp ( res )
+	    })
+	    peomo.catch ( err => errp ( MyError.handler(new MyError({
+		name: "CheckFilesERROR",
+		message: "Error in search file path",
+		obj: err
+	    }))))
+	} catch (e) {
+	    errp ( MyError.handler(new MyError({
+		name: "searchErrorTHENFiles",
+		message: "Erro in THEN body searchFile",
+		obj: e
+	    })))
+	} 
     }))
 }
 
@@ -59,7 +102,11 @@ const checkFiles = ( pathFile = '' ) => {
 	spl = logFileName.split('/')
 
 	if ( pathFile == '' ) {
-	    pathFile = spl[0]
+
+	    if (spl.length > 1)
+		pathFile = spl[spl.length - 2]
+	    else
+		pathFile = spl[0]
 	}
 
 	ser = searchFiles ( pathFile )
@@ -91,11 +138,11 @@ const loadLog = (  ) => {
 		if (res){
 		    fs.readFile(logFileName, (err, dataNow) => {
 			if ( err ) {
-			    MyError.handler(new MyError({
+			    errp ( MyError.handler(new MyError({
 				name: "LogERRORLoad",
 				message: "ReadFile Error",
 				obj: err
-			    }))
+			    })))
 			}
 			
 			data = JSON.parse(dataNow);
@@ -156,10 +203,6 @@ const sizeof = ( object ) => {
     return bytes;
 }
 
-const checkSpace = () => {
-    return sizeof(data)
-}
-
 const changeLogFile = () => {
 
     return (new Promise ((res, err) => {
@@ -167,6 +210,11 @@ const changeLogFile = () => {
 	checkFiles
     }))
 }
+
+const checkSpace = () => {
+    return sizeof(data)
+}
+
 
 const saveLog = (  ) => {
 
@@ -268,30 +316,37 @@ const registerLogMsg = (msg) => {
     return (new Promise( (resp, errp) => {
 
 	if (msg instanceof Object) {
-
-	    let SwapData = {
-		date: Date(),
-		enabled: true,
-		data: {
-		    from: msg.us,
-		    about: msg.about,
-		    meta: msg.meta,
-		    obj: msg.obj
+	    try {
+		let SwapData = {
+		    date: Date(),
+		    enabled: true,
+		    data: {
+			from: msg.us,
+			about: msg.about,
+			meta: msg.meta,
+			obj: msg.obj
+		    }
 		}
-	    }
-		 
-	    up = upDateLog(SwapData)
-	    up.then ( res => {
-		resp ( res )
-	    })
-	    up.catch ( err => {
 		
+		up = upDateLog(SwapData)
+		up.then ( res => {
+		    resp ( res )
+		})
+		up.catch ( err => {
+		    
+		    errp ( MyError.handler(new MyError({
+			name: "ErrorRegisterLog",
+			msg: "Error in update log",
+			obj: err
+		    })))
+		})
+	    } catch (e) {
 		errp ( MyError.handler(new MyError({
-		    name: "ErrorRegisterLog",
-		    msg: "Error in update log",
-		    obj: err
+		    name: "RegisterTHENERRRORMsg",
+		    msg: "Error in data handler to register msg",
+		    obj: msg
 		})))
-	    })
+	    }
 	} else {
 	    errp ( MyError.handler(new MyError({
 		name: "RegisterERRRORMsg",
